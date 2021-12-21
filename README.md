@@ -5,5 +5,5 @@ dplyr, stringr, MuMIn, MASS, lme4, lmerTest
 
 and
 
-a data.frame (ore tibble) with the data you want to analyse.
+a data.frame (or tibble) with the data you want to analyse.
 
