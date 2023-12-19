@@ -100,6 +100,7 @@ modeler <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save =
   # prepare output data
   data <- list()
   data$bm_term <- bm_term
+  data$fm_term <- fm_term
   data$bm <- bm
   data$orig_data <- df
   data$orig_data$fitted_y <- fitted(bm) 
