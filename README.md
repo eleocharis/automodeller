@@ -24,3 +24,14 @@ predNo = filter the for your analysis relevant variabes in the model selection. 
 save = TRUE/FALSE,  if true it will be saved as rds file.
 
 filname = "auto" If auto is selected (which is default) the name will be "response~pred1". You can pass an own name here.
+
+
+You obtain a list with the elements:
+
+var$bm_term <- best model term/formula
+data$fm_term <- full model term/formula
+var$bm <- best model candidate, the actual model you obtain from e.g. glm_poisson
+var$orig_data <- unmodified data, but only columns selected, which where in your model formular. Additionally excluded rows with missing values.
+var$orig_data$fitted_y <- fitted response values
+for mixed models also:
+var$scaled_data <- for mixed models data are scaled. these data can be found here.
