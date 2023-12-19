@@ -19,20 +19,7 @@ library(MASS)
 library(lme4)
 library(lmerTest)
 
-# debugging unit, 
-# rm(list = ls())
-# path = "/home/jan/Uni/research_project/data"
-# setwd(path)
-# x <- read.csv(sort(list.files(path = path, pattern = "all_plot"), decreasing = T)[1], stringsAsFactors = T)
-# fm_term = "SR_herb_agg ~ DLI_cv * DLI * pH * pH_cv + (1|phyt_clust4)"
-# fm_term = "SR_herb ~ DBHcv + (1|phyt_clust4)"
-# bm_term = "SR_herb_agg ~ DLI_cv + DLI + CNratio + CNratio_cv + DLI_cv:CNratio_cv + (1|phyt_clust4)" # das ist das interssante model für H3/2
-# df = x
-# predNo=1
-# model_type = "glmer.nb"
-
-
-ms <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save = FALSE, filename = "auto", save_ms = FALSE, ...) {
+modeler <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save = FALSE, filename = "auto") {
   
   # define necessary variables
   fm_term_elemts <- unlist(str_split(fm_term, " "))
@@ -59,16 +46,16 @@ ms <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save = FALS
   else if (model_type == "glm_poisson") {fm <- glm(fm_term, family = "poisson", data = df, na.action = na.fail)}
   else if (model_type == "glm_logn") {fm <- glm(fm_term, family = "gaussian"(link='log'), data = df, na.action = na.fail)}
   else if (model_type == "glmer.nb") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     fm <- glmer.nb(fm_term, data = df_sc, na.action = na.fail,
                    control = glmerControl(optimizer = "Nelder_Mead", optCtrl = list(maxfun = 10000)))}
   else if (model_type == "lmer") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     fm <- lmer(fm_term, REML = F, data = df_sc, na.action = na.fail)}  
   else if (model_type == "glmer_logn") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     fm <- glmer(fm_term, family = "gaussian"(link='log'), REML = F, data = df_sc, na.action = na.fail)}
   # print(summary(fm))
@@ -76,7 +63,7 @@ ms <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save = FALS
   # model selection
   ms <- dredge(fm, evaluate = T, rank = "AICc")
   
-  # filter the relevant variables from the model selection. predNo = 1: 1 relevant predictor; predNo = 2: 2 relevant predictors, 0-> the very best model
+  # filter the relevant variabes in the model selection. predNo = 1: 1 relevant predictor; predNo = 2: 2 relevant predictors, 0-> the very best model
   if (predNo == 1) {bm_vars <- ms %>% filter(!is.na(get(pred1))) %>% arrange(AICc) %>% head(1)}
   else if (predNo == 2) {bm_vars <- ms %>% filter(!is.na(get(pred1)) & !is.na(get(pred2))) %>% arrange(AICc) %>% head(1)}
   else if (predNo == 0) {bm_vars <- ms %>% arrange(AICc) %>% head(1)}
@@ -94,35 +81,32 @@ ms <- function(df, fm_term = "y ~ x", model_type = "lm", predNo = 1, save = FALS
   else if (model_type == "glm_poison") {bm <- glm(bm_term , family = "poisson", data = df)}
   else if (model_type == "glm_logn") {bm <- glm(bm_term , family = "gaussian"(link='log'), data = df)}
   else if (model_type == "glmer.nb") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     bm <- glmer.nb(bm_term, data = df_sc,
                    control = glmerControl(optimizer = "Nelder_Mead", optCtrl = list(maxfun = 10000)))}
   else if (model_type == "lmer") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     bm <- lmer(bm_term, REML = F, data = df_sc)}
   else if (model_type == "glmer_logn") {
-    df_sc <- df %>% mutate(across(where(is.numeric), scale))
+    df_sc <- df %>% mutate(across(where(is.numeric), scale))  # to get positive values df_sc <- df_sc %>% mutate(across(where(is.numeric), ~ . + 10))
     df_sc[1] <- df[1]
     bm <- glmer(bm_term, family = "gaussian"(link='log'), REML = F, data = df_sc, na.action = na.fail)}
   # report of the model
   print(bm_term)
   print(summary(bm))
   
-  # prepare data
+  # prepare output data
   data <- list()
   data$bm_term <- bm_term
   data$bm <- bm
   data$orig_data <- df
-  data$orig_data$fitted_y <- fitted(bm)
-  if (save_ms) {data$ms <- ms} # save the model selection table, if desired
+  data$orig_data$fitted_y <- fitted(bm) 
   try(data$scaled_data <- df_sc, silent = T)
   
-  
-  
   # save the data if desired
-  if (save) {
+  if (save == T) {
     if (filename == "auto") {filename <- paste(response, pred1, sep = "~")}
     saveRDS(data, file = paste0(filename, ".rds"))
   }
